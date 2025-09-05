@@ -94,7 +94,7 @@
       if (frames % 100 === 0) spawnPipe();
     }
 
-    // ====== PIPE 3D ======
+    // ====== Pipa 3D ======
     function drawPipe(x, y, height, isTop) {
       // gradasi silinder
       const grad = ctx.createLinearGradient(x, 0, x + pipeWidth, 0);
@@ -308,18 +308,4 @@
         if (my >= 200 && my <= 250) { resetGame(); setLevel(1); gameState = "playing"; }
         else if (my >= 280 && my <= 330) { resetGame(); setLevel(2); gameState = "playing"; }
         else if (my >= 360 && my <= 410) { resetGame(); setLevel(3); gameState = "playing"; }
-        else if (my >= 440 && my <= 490) { gameState = "menu"; }
-      } else if (gameState === "instructions") {
-        if (my >= 500 && my <= 550) gameState = "menu";
-      } else if (gameState === "playing") {
-        if (!gameOver) bird.jump();
-      } else if (gameState === "gameover") {
-        resetGame();
-        gameState = "playing";
-      }
-    }, { passive: false });
-
-    loop();
-  </script>
-</body>
-</html>
+        else if (my >= 440 && my <= 490) { gameState
