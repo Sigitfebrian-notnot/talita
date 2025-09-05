@@ -1,178 +1,344 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Flappy Bird 3D Menu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Fly Bird 3D Game</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #000; }
-    canvas { display: block; margin: auto; background: #70c5ce; }
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #70c5ce;
+      height: 100vh;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      border: 2px solid #333;
+      border-radius: 12px;
+      box-shadow: 0px 5px 30px rgba(0,0,0,0.5);
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-<canvas id="gameCanvas" width="320" height="480"></canvas>
-<script>
-  const canvas = document.getElementById("gameCanvas");
-  const ctx = canvas.getContext("2d");
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
 
-  let frames = 0;
-  const DEGREE = Math.PI / 180;
-
-  const sprite = new Image();
-  sprite.src = "bird.png";
-  const bg = new Image();
-  bg.src = "background.png";
-  const pipe = new Image();
-  pipe.src = "pipe.png";
-
-  let state = { current: 0, getReady: 0, game: 1, over: 2 };
-
-  document.addEventListener("keydown", (e) => {
-    if (e.code === "Space") {
-      if (state.current === state.getReady) {
-        state.current = state.game;
-      } else if (state.current === state.game) {
-        bird.flap();
-      } else if (state.current === state.over) {
-        state.current = state.getReady;
-        bird.reset();
-        pipes.reset();
-      }
+    // ====== Responsive Canvas ======
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     }
-  });
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
 
-  canvas.addEventListener("touchstart", () => {
-    if (state.current === state.getReady) {
-      state.current = state.game;
-    } else if (state.current === state.game) {
-      bird.flap();
-    } else if (state.current === state.over) {
-      state.current = state.getReady;
-      bird.reset();
-      pipes.reset();
-    }
-  });
+    // ====== Gambar ======
+    const bgImg = new Image();
+    bgImg.src = "background.png"; // ganti dengan gambar awan kamu
 
-  const bird = {
-    x: 50, y: 150, w: 34, h: 26,
-    gravity: 0.25, jump: 4.6, speed: 0, rotation: 0,
-    flap() { this.speed = -this.jump; },
-    draw() {
-      ctx.drawImage(sprite, this.x, this.y);
-    },
-    update() {
-      if (state.current === state.getReady) {
-        this.y = 150;
-        this.rotation = 0 * DEGREE;
-      } else {
+    const birdImg = new Image();
+    birdImg.src = "bird.png"; // ganti dengan foto burung kamu
+
+    // ====== State Game ======
+    let gameState = "menu"; // "menu", "playing", "gameover", "level", "instructions"
+    let frames = 0, score = 0, gameOver = false;
+    let level = 1;
+
+    // ====== Burung ======
+    const bird = {
+      x: 50, y: 150, w: 40, h: 40,
+      speed: 0, gravity: 0.25, jumpPower: 4.6,
+      jump() { this.speed = -this.jumpPower; },
+      update() {
         this.speed += this.gravity;
         this.y += this.speed;
-        if (this.y + this.h >= canvas.height - 80) {
-          this.y = canvas.height - 80 - this.h;
-          if (state.current === state.game) {
-            state.current = state.over;
-          }
+        if (this.y + this.h >= canvas.height) gameOver = true;
+        if (this.y < 0) this.y = 0;
+      },
+      draw() {
+        if (birdImg.complete) {
+          ctx.drawImage(birdImg, this.x, this.y, this.w, this.h);
+        } else {
+          ctx.fillStyle = "yellow";
+          ctx.fillRect(this.x, this.y, this.w, this.h);
         }
       }
-    },
-    reset() {
-      this.speed = 0;
-      this.y = 150;
-    }
-  };
+    };
 
-  const pipes = {
-    position: [],
-    top: { sX: 0, sY: 0 },
-    bottom: { sX: 0, sY: 1 },
-    w: 53, h: 400, gap: 85, maxYPos: -150,
-    draw() {
-      for (let i = 0; i < this.position.length; i++) {
-        let p = this.position[i];
-        let topYPos = p.y;
-        ctx.drawImage(pipe, p.x, topYPos, this.w, this.h);
-        ctx.drawImage(pipe, p.x, topYPos + this.h + this.gap, this.w, this.h);
+    // ====== Pipa ======
+    const pipes = [];
+    let pipeWidth = 70, pipeGap = 130, pipeSpeed = 2;
+
+    function spawnPipe() {
+      const topHeight = Math.floor(Math.random() * (canvas.height - pipeGap - 100)) + 50;
+      pipes.push({ x: canvas.width, y: topHeight });
+    }
+
+    function updatePipes() {
+      for (let i = 0; i < pipes.length; i++) {
+        let p = pipes[i];
+        p.x -= pipeSpeed;
+        if (
+          bird.x < p.x + pipeWidth &&
+          bird.x + bird.w > p.x &&
+          (bird.y < p.y || bird.y + bird.h > p.y + pipeGap)
+        ) gameOver = true;
+        if (p.x + pipeWidth === bird.x) score++;
       }
-    },
-    update() {
-      if (state.current !== state.game) return;
-      if (frames % 100 === 0) {
-        this.position.push({ x: canvas.width, y: this.maxYPos * (Math.random() + 1) });
+      if (pipes.length && pipes[0].x + pipeWidth < 0) pipes.shift();
+      if (frames % 100 === 0) spawnPipe();
+    }
+
+    // ====== Pipa 3D ======
+    function drawPipe(x, y, height, isTop) {
+      const grad = ctx.createLinearGradient(x, 0, x + pipeWidth, 0);
+      grad.addColorStop(0, "#0a0");
+      grad.addColorStop(0.3, "#3ee24d");
+      grad.addColorStop(0.7, "#2ecc71");
+      grad.addColorStop(1, "#0a0");
+
+      ctx.fillStyle = grad;
+      if (isTop) {
+        ctx.fillRect(x, 0, pipeWidth, height);
+        ctx.fillStyle = "#1e8449";
+        ctx.fillRect(x - 5, height - 20, pipeWidth + 10, 20);
+      } else {
+        ctx.fillRect(x, y, pipeWidth, canvas.height - y);
+        ctx.fillStyle = "#1e8449";
+        ctx.fillRect(x - 5, y, pipeWidth + 10, 20);
       }
-      for (let i = 0; i < this.position.length; i++) {
-        let p = this.position[i];
-        p.x -= 2;
-        if (p.x + this.w <= 0) {
-          this.position.shift();
+
+      ctx.fillStyle = "rgba(255,255,255,0.3)";
+      ctx.fillRect(x + 5, isTop ? 0 : y, 5, isTop ? height : canvas.height - y);
+
+      ctx.fillStyle = "rgba(0,0,0,0.2)";
+      ctx.fillRect(x + pipeWidth - 5, isTop ? 0 : y, 5, isTop ? height : canvas.height - y);
+    }
+
+    function drawPipes() {
+      for (let p of pipes) {
+        drawPipe(p.x, 0, p.y, true);
+        drawPipe(p.x, p.y + pipeGap, canvas.height - (p.y + pipeGap), false);
+      }
+    }
+
+    // ====== Menu ======
+    function drawMenu() {
+      if (bgImg.complete) {
+        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = "#87CEEB";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // Judul 3D
+      ctx.font = "bold 48px Arial";
+      ctx.fillStyle = "#fff";
+      ctx.shadowColor = "#000";
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 4;
+      ctx.shadowOffsetY = 4;
+      ctx.fillText("FLY BIRD", canvas.width / 2 - 110, 150);
+
+      ctx.shadowColor = "transparent"; // reset shadow
+
+      drawButton("Play", 150, 250);
+      drawButton("Level Select", 200, 320);
+      drawButton("Instructions", 200, 390);
+    }
+
+    // ====== Tombol 3D ======
+    function drawButton(text, w, y) {
+      // bayangan tombol
+      ctx.fillStyle = "#27ae60";
+      ctx.fillRect(canvas.width/2 - w/2 + 4, y + 4, w, 50);
+
+      // tombol utama
+      ctx.fillStyle = "#2ecc71";
+      ctx.fillRect(canvas.width/2 - w/2, y, w, 50);
+
+      // highlight atas
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      ctx.fillRect(canvas.width/2 - w/2, y, w, 10);
+
+      // teks
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText(text, canvas.width/2 - ctx.measureText(text).width/2, y + 32);
+    }
+
+    // ====== Level Menu ======
+    function drawLevelMenu() {
+      ctx.fillStyle = "#87CEEB";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "black";
+      ctx.font = "28px Arial";
+      ctx.fillText("Select Level", canvas.width/2 - 80, 120);
+
+      drawButton("Level 1 (Easy)", 200, 200);
+      drawButton("Level 2 (Medium)", 200, 280);
+      drawButton("Level 3 (Hard)", 200, 360);
+      drawButton("Back", 100, 440);
+    }
+
+    // ====== Instructions ======
+    function drawInstructions() {
+      ctx.fillStyle = "#87CEEB";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "black";
+      ctx.font = "20px Arial";
+      ctx.fillText("How to Play:", 30, 100);
+      ctx.font = "16px Arial";
+      ctx.fillText("- Press SPACE or CLICK/TAP to jump", 30, 140);
+      ctx.fillText("- Avoid the pipes", 30, 170);
+      ctx.fillText("- Score +1 for each pipe passed", 30, 200);
+
+      drawButton("Back", 100, 500);
+    }
+
+    // ====== Game Over ======
+    function drawGameOver() {
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "white";
+      ctx.font = "36px Arial";
+      ctx.fillText("GAME OVER", canvas.width/2 - 100, canvas.height/2 - 40);
+
+      ctx.font = "20px Arial";
+      ctx.fillText("Score: " + score, canvas.width/2 - 40, canvas.height/2);
+
+      drawButton("Restart", 120, canvas.height/2 + 50);
+      drawButton("Menu", 120, canvas.height/2 + 120);
+    }
+
+    // ====== Reset Game ======
+    function resetGame() {
+      bird.y = 150;
+      bird.speed = 0;
+      pipes.length = 0;
+      score = 0;
+      gameOver = false;
+      frames = 0;
+    }
+
+    // ====== Level Config ======
+    function setLevel(lvl) {
+      if (lvl === 1) { pipeSpeed = 2; pipeGap = 150; }
+      if (lvl === 2) { pipeSpeed = 3; pipeGap = 130; }
+      if (lvl === 3) { pipeSpeed = 4; pipeGap = 110; }
+      level = lvl;
+    }
+
+    // ====== Main Loop ======
+    function loop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (gameState === "menu") {
+        drawMenu();
+      } else if (gameState === "level") {
+        drawLevelMenu();
+      } else if (gameState === "instructions") {
+        drawInstructions();
+      } else if (gameState === "playing") {
+        if (bgImg.complete) {
+          ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+        } else {
+          ctx.fillStyle = "#87CEEB";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        if (!gameOver) {
+          bird.update();
+          updatePipes();
+        }
+
+        bird.draw();
+        drawPipes();
+
+        ctx.fillStyle = "black";
+        ctx.font = "20px Arial";
+        ctx.fillText("Score: " + score, 10, 30);
+
+        frames++;
+        if (gameOver) gameState = "gameover";
+      } else if (gameState === "gameover") {
+        drawGameOver();
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    // ====== Event Mouse (PC) ======
+    canvas.addEventListener("click", e => {
+      const my = e.offsetY;
+
+      if (gameState === "menu") {
+        if (my >= 250 && my <= 300) { resetGame(); setLevel(1); gameState = "playing"; }
+        else if (my >= 320 && my <= 370) { gameState = "level"; }
+        else if (my >= 390 && my <= 440) { gameState = "instructions"; }
+      } else if (gameState === "level") {
+        if (my >= 200 && my <= 250) { resetGame(); setLevel(1); gameState = "playing"; }
+        else if (my >= 280 && my <= 330) { resetGame(); setLevel(2); gameState = "playing"; }
+        else if (my >= 360 && my <= 410) { resetGame(); setLevel(3); gameState = "playing"; }
+        else if (my >= 440 && my <= 490) { gameState = "menu"; }
+      } else if (gameState === "instructions") {
+        if (my >= 500 && my <= 550) gameState = "menu";
+      } else if (gameState === "playing") {
+        if (!gameOver) bird.jump();
+      } else if (gameState === "gameover") {
+        if (my >= canvas.height/2 + 50 && my <= canvas.height/2 + 100) {
+          resetGame();
+          gameState = "playing";
+        } else if (my >= canvas.height/2 + 120 && my <= canvas.height/2 + 170) {
+          gameState = "menu";
         }
       }
-    },
-    reset() { this.position = []; }
-  };
+    });
 
-  // ====== Tombol 3D ======
-  function drawButton(text, w, y) {
-    // bayangan (shadow)
-    ctx.fillStyle = "rgba(0,0,0,0.4)";
-    ctx.fillRect(canvas.width/2 - w/2 + 5, y + 5, w, 50);
+    // ====== Event Keyboard (PC) ======
+    document.addEventListener("keydown", e => {
+      if (gameState === "playing" && e.code === "Space") bird.jump();
+      if (gameState === "gameover" && e.code === "Space") {
+        resetGame();
+        gameState = "playing";
+      }
+    });
 
-    // body tombol dengan gradasi 3D
-    const grad = ctx.createLinearGradient(0, y, 0, y + 50);
-    grad.addColorStop(0, "#2ecc71");   // hijau terang
-    grad.addColorStop(1, "#27ae60");   // hijau gelap
-    ctx.fillStyle = grad;
-    ctx.fillRect(canvas.width/2 - w/2, y, w, 50);
+    // ====== Event Touch (Mobile) ======
+    canvas.addEventListener("touchstart", e => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const my = touch.clientY;
 
-    // highlight atas biar timbul
-    ctx.fillStyle = "rgba(255,255,255,0.3)";
-    ctx.fillRect(canvas.width/2 - w/2, y, w, 5);
+      if (gameState === "menu") {
+        if (my >= 250 && my <= 300) { resetGame(); setLevel(1); gameState = "playing"; }
+        else if (my >= 320 && my <= 370) { gameState = "level"; }
+        else if (my >= 390 && my <= 440) { gameState = "instructions"; }
+      } else if (gameState === "level") {
+        if (my >= 200 && my <= 250) { resetGame(); setLevel(1); gameState = "playing"; }
+        else if (my >= 280 && my <= 330) { resetGame(); setLevel(2); gameState = "playing"; }
+        else if (my >= 360 && my <= 410) { resetGame(); setLevel(3); gameState = "playing"; }
+        else if (my >= 440 && my <= 490) { gameState = "menu"; }
+      } else if (gameState === "instructions") {
+        if (my >= 500 && my <= 550) gameState = "menu";
+      } else if (gameState === "playing") {
+        if (!gameOver) bird.jump();
+      } else if (gameState === "gameover") {
+        if (my >= canvas.height/2 + 50 && my <= canvas.height/2 + 100) {
+          resetGame();
+          gameState = "playing";
+        } else if (my >= canvas.height/2 + 120 && my <= canvas.height/2 + 170) {
+          gameState = "menu";
+        }
+      }
+    }, { passive: false });
 
-    // garis bawah (shadow dalam)
-    ctx.fillStyle = "rgba(0,0,0,0.2)";
-    ctx.fillRect(canvas.width/2 - w/2, y + 45, w, 5);
-
-    // teks tombol
-    ctx.fillStyle = "white";
-    ctx.font = "20px Arial bold";
-    ctx.fillText(text, canvas.width/2 - ctx.measureText(text).width/2, y + 32);
-  }
-
-  function draw() {
-    ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
-
-    if (state.current === state.getReady) {
-      ctx.fillStyle = "white";
-      ctx.font = "30px Arial bold";
-      ctx.fillText("Flappy Bird", canvas.width/2 - 80, 100);
-
-      drawButton("Play", 120, 200);
-      drawButton("Exit", 120, 280);
-    }
-
-    if (state.current === state.game) {
-      pipes.draw();
-      bird.draw();
-    }
-    if (state.current === state.over) {
-      ctx.fillStyle = "white";
-      ctx.font = "25px Arial";
-      ctx.fillText("Game Over", canvas.width/2 - 70, 200);
-      drawButton("Restart", 140, 260);
-    }
-  }
-
-  function update() {
-    bird.update();
-    pipes.update();
-  }
-
-  function loop() {
-    update();
-    draw();
-    frames++;
-    requestAnimationFrame(loop);
-  }
-
-  loop();
-</script>
+    loop();
+  </script>
 </body>
 </html>
