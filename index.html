@@ -1,218 +1,178 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Flappy Bird 3D</title>
+  <title>Flappy Bird 3D Menu</title>
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #70c5ce;
-    }
-    canvas {
-      display: block;
-    }
+    body { margin: 0; overflow: hidden; background: #000; }
+    canvas { display: block; margin: auto; background: #70c5ce; }
   </style>
 </head>
 <body>
-<canvas id="gameCanvas"></canvas>
-
+<canvas id="gameCanvas" width="320" height="480"></canvas>
 <script>
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+  let frames = 0;
+  const DEGREE = Math.PI / 180;
 
-window.addEventListener("resize", () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-});
+  const sprite = new Image();
+  sprite.src = "bird.png";
+  const bg = new Image();
+  bg.src = "background.png";
+  const pipe = new Image();
+  pipe.src = "pipe.png";
 
-// ---------------- Game State ----------------
-let gameState = "menu"; // "menu" | "play"
+  let state = { current: 0, getReady: 0, game: 1, over: 2 };
 
-// ---------------- Menu Buttons ----------------
-let buttons = [
-  { text: "Start Game", x: canvas.width/2-100, y: 200, w: 200, h: 60,
-    action: () => { gameState = "play"; } },
-  { text: "Level", x: canvas.width/2-100, y: 280, w: 200, h: 60,
-    action: () => { alert("Level select (belum dibuat)"); } },
-  { text: "Instructions", x: canvas.width/2-100, y: 360, w: 200, h: 60,
-    action: () => { alert("Tap layar / klik mouse untuk terbang"); } }
-];
-
-function drawButton(btn) {
-  // bayangan
-  ctx.fillStyle = "#333";
-  ctx.fillRect(btn.x+4, btn.y+4, btn.w, btn.h);
-  // gradient 3D
-  let grad = ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y+btn.h);
-  grad.addColorStop(0, "#4facfe");
-  grad.addColorStop(1, "#00f2fe");
-  ctx.fillStyle = grad;
-  ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
-  // border
-  ctx.strokeStyle = "#000";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
-  // teks
-  ctx.fillStyle = "white";
-  ctx.font = "20px Arial";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(btn.text, btn.x+btn.w/2, btn.y+btn.h/2);
-}
-
-function drawMenu() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#87ceeb";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.fillStyle = "white";
-  ctx.font = "bold 40px Arial";
-  ctx.textAlign = "center";
-  ctx.fillText("Flappy Bird 3D", canvas.width/2, 120);
-
-  buttons.forEach(drawButton);
-}
-
-// klik / tap menu
-canvas.addEventListener("click", function(e) {
-  if (gameState === "menu") {
-    let rect = canvas.getBoundingClientRect();
-    let mx = e.clientX - rect.left;
-    let my = e.clientY - rect.top;
-    buttons.forEach(btn => {
-      if (mx > btn.x && mx < btn.x+btn.w && my > btn.y && my < btn.y+btn.h) {
-        btn.action();
-      }
-    });
-  }
-});
-
-// ---------------- Game Variables ----------------
-let birdX = 50;
-let birdY = 150;
-let birdRadius = 20;
-let gravity = 0.6;
-let lift = -10;
-let velocity = 0;
-
-let pipes = [];
-let frame = 0;
-let score = 0;
-
-// ---------------- Game Functions ----------------
-function drawBird() {
-  ctx.beginPath();
-  ctx.arc(birdX, birdY, birdRadius, 0, Math.PI*2);
-  ctx.fillStyle = "yellow";
-  ctx.fill();
-  ctx.stroke();
-}
-
-function drawPipes() {
-  ctx.fillStyle = "green";
-  pipes.forEach(pipe => {
-    ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
-    ctx.fillRect(pipe.x, canvas.height - pipe.bottom, pipe.width, pipe.bottom);
-  });
-}
-
-function updatePipes() {
-  if (frame % 90 === 0) {
-    let pipeHeight = Math.floor(Math.random() * (canvas.height/2)) + 50;
-    let gap = 150;
-    pipes.push({
-      x: canvas.width,
-      width: 50,
-      top: pipeHeight,
-      bottom: canvas.height - pipeHeight - gap
-    });
-  }
-
-  pipes.forEach(pipe => {
-    pipe.x -= 2;
-  });
-
-  if (pipes.length > 0 && pipes[0].x + pipes[0].width < 0) {
-    pipes.shift();
-    score++;
-  }
-}
-
-function checkCollision() {
-  if (birdY + birdRadius > canvas.height || birdY - birdRadius < 0) {
-    resetGame();
-  }
-
-  pipes.forEach(pipe => {
-    if (birdX + birdRadius > pipe.x && birdX - birdRadius < pipe.x + pipe.width) {
-      if (birdY - birdRadius < pipe.top || birdY + birdRadius > canvas.height - pipe.bottom) {
-        resetGame();
+  document.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+      if (state.current === state.getReady) {
+        state.current = state.game;
+      } else if (state.current === state.game) {
+        bird.flap();
+      } else if (state.current === state.over) {
+        state.current = state.getReady;
+        bird.reset();
+        pipes.reset();
       }
     }
   });
-}
 
-function resetGame() {
-  birdY = 150;
-  velocity = 0;
-  pipes = [];
-  score = 0;
-  gameState = "menu"; // balik ke menu lagi
-}
+  canvas.addEventListener("touchstart", () => {
+    if (state.current === state.getReady) {
+      state.current = state.game;
+    } else if (state.current === state.game) {
+      bird.flap();
+    } else if (state.current === state.over) {
+      state.current = state.getReady;
+      bird.reset();
+      pipes.reset();
+    }
+  });
 
-function updateGame() {
-  velocity += gravity;
-  birdY += velocity;
+  const bird = {
+    x: 50, y: 150, w: 34, h: 26,
+    gravity: 0.25, jump: 4.6, speed: 0, rotation: 0,
+    flap() { this.speed = -this.jump; },
+    draw() {
+      ctx.drawImage(sprite, this.x, this.y);
+    },
+    update() {
+      if (state.current === state.getReady) {
+        this.y = 150;
+        this.rotation = 0 * DEGREE;
+      } else {
+        this.speed += this.gravity;
+        this.y += this.speed;
+        if (this.y + this.h >= canvas.height - 80) {
+          this.y = canvas.height - 80 - this.h;
+          if (state.current === state.game) {
+            state.current = state.over;
+          }
+        }
+      }
+    },
+    reset() {
+      this.speed = 0;
+      this.y = 150;
+    }
+  };
 
-  updatePipes();
-  checkCollision();
-}
+  const pipes = {
+    position: [],
+    top: { sX: 0, sY: 0 },
+    bottom: { sX: 0, sY: 1 },
+    w: 53, h: 400, gap: 85, maxYPos: -150,
+    draw() {
+      for (let i = 0; i < this.position.length; i++) {
+        let p = this.position[i];
+        let topYPos = p.y;
+        ctx.drawImage(pipe, p.x, topYPos, this.w, this.h);
+        ctx.drawImage(pipe, p.x, topYPos + this.h + this.gap, this.w, this.h);
+      }
+    },
+    update() {
+      if (state.current !== state.game) return;
+      if (frames % 100 === 0) {
+        this.position.push({ x: canvas.width, y: this.maxYPos * (Math.random() + 1) });
+      }
+      for (let i = 0; i < this.position.length; i++) {
+        let p = this.position[i];
+        p.x -= 2;
+        if (p.x + this.w <= 0) {
+          this.position.shift();
+        }
+      }
+    },
+    reset() { this.position = []; }
+  };
 
-function drawGame() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle = "#70c5ce";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  // ====== Tombol 3D ======
+  function drawButton(text, w, y) {
+    // bayangan (shadow)
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+    ctx.fillRect(canvas.width/2 - w/2 + 5, y + 5, w, 50);
 
-  drawBird();
-  drawPipes();
+    // body tombol dengan gradasi 3D
+    const grad = ctx.createLinearGradient(0, y, 0, y + 50);
+    grad.addColorStop(0, "#2ecc71");   // hijau terang
+    grad.addColorStop(1, "#27ae60");   // hijau gelap
+    ctx.fillStyle = grad;
+    ctx.fillRect(canvas.width/2 - w/2, y, w, 50);
 
-  ctx.fillStyle = "white";
-  ctx.font = "24px Arial";
-  ctx.fillText("Score: " + score, 60, 30);
-}
+    // highlight atas biar timbul
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.fillRect(canvas.width/2 - w/2, y, w, 5);
 
-// ---------------- Controls ----------------
-document.addEventListener("keydown", function(e) {
-  if (e.code === "Space") {
-    velocity = lift;
+    // garis bawah (shadow dalam)
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillRect(canvas.width/2 - w/2, y + 45, w, 5);
+
+    // teks tombol
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial bold";
+    ctx.fillText(text, canvas.width/2 - ctx.measureText(text).width/2, y + 32);
   }
-});
-canvas.addEventListener("click", function(e) {
-  if (gameState === "play") {
-    velocity = lift;
-  }
-});
-canvas.addEventListener("touchstart", function(e) {
-  if (gameState === "play") {
-    velocity = lift;
-  }
-});
 
-// ---------------- Game Loop ----------------
-function gameLoop() {
-  if (gameState === "menu") {
-    drawMenu();
-  } else if (gameState === "play") {
-    updateGame();
-    drawGame();
+  function draw() {
+    ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+
+    if (state.current === state.getReady) {
+      ctx.fillStyle = "white";
+      ctx.font = "30px Arial bold";
+      ctx.fillText("Flappy Bird", canvas.width/2 - 80, 100);
+
+      drawButton("Play", 120, 200);
+      drawButton("Exit", 120, 280);
+    }
+
+    if (state.current === state.game) {
+      pipes.draw();
+      bird.draw();
+    }
+    if (state.current === state.over) {
+      ctx.fillStyle = "white";
+      ctx.font = "25px Arial";
+      ctx.fillText("Game Over", canvas.width/2 - 70, 200);
+      drawButton("Restart", 140, 260);
+    }
   }
-  requestAnimationFrame(gameLoop);
-}
-gameLoop();
+
+  function update() {
+    bird.update();
+    pipes.update();
+  }
+
+  function loop() {
+    update();
+    draw();
+    frames++;
+    requestAnimationFrame(loop);
+  }
+
+  loop();
 </script>
 </body>
 </html>
