@@ -39,13 +39,13 @@
 
     // ====== Gambar ======
     const bgImg = new Image();
-    bgImg.src = "background.png"; 
+    bgImg.src = "background.png"; // ganti dengan gambar awan kamu
 
     const birdImg = new Image();
-    birdImg.src = "bird.png"; 
+    birdImg.src = "bird.png"; // ganti dengan foto burung kamu
 
     // ====== State Game ======
-    let gameState = "menu"; 
+    let gameState = "menu"; // "menu", "playing", "gameover", "level", "instructions"
     let frames = 0, score = 0, gameOver = false;
     let level = 1;
 
@@ -94,11 +94,14 @@
       if (frames % 100 === 0) spawnPipe();
     }
 
+    // ====== PIPE 3D ======
     function drawPipe(x, y, height, isTop) {
+      // gradasi silinder
       const grad = ctx.createLinearGradient(x, 0, x + pipeWidth, 0);
-      grad.addColorStop(0, "#0f0");
-      grad.addColorStop(0.5, "#2ecc71");
-      grad.addColorStop(1, "#0f0");
+      grad.addColorStop(0, "#0a0");       // hijau gelap
+      grad.addColorStop(0.3, "#3ee24d");  // hijau terang
+      grad.addColorStop(0.7, "#2ecc71");  // hijau medium
+      grad.addColorStop(1, "#0a0");       // hijau gelap
 
       ctx.fillStyle = grad;
       if (isTop) {
@@ -110,6 +113,14 @@
         ctx.fillStyle = "#1e8449";
         ctx.fillRect(x - 5, y, pipeWidth + 10, 20);
       }
+
+      // highlight kiri
+      ctx.fillStyle = "rgba(255,255,255,0.3)";
+      ctx.fillRect(x + 5, isTop ? 0 : y, 5, isTop ? height : canvas.height - y);
+
+      // shadow kanan
+      ctx.fillStyle = "rgba(0,0,0,0.2)";
+      ctx.fillRect(x + pipeWidth - 5, isTop ? 0 : y, 5, isTop ? height : canvas.height - y);
     }
 
     function drawPipes() {
@@ -121,8 +132,12 @@
 
     // ====== Menu ======
     function drawMenu() {
-      if (bgImg.complete) ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-      else { ctx.fillStyle = "#87CEEB"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+      if (bgImg.complete) {
+        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = "#87CEEB";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
 
       ctx.fillStyle = "black";
       ctx.font = "36px Arial";
@@ -208,14 +223,24 @@
     function loop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (gameState === "menu") drawMenu();
-      else if (gameState === "level") drawLevelMenu();
-      else if (gameState === "instructions") drawInstructions();
-      else if (gameState === "playing") {
-        if (bgImg.complete) ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-        else { ctx.fillStyle = "#87CEEB"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+      if (gameState === "menu") {
+        drawMenu();
+      } else if (gameState === "level") {
+        drawLevelMenu();
+      } else if (gameState === "instructions") {
+        drawInstructions();
+      } else if (gameState === "playing") {
+        if (bgImg.complete) {
+          ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+        } else {
+          ctx.fillStyle = "#87CEEB";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
-        if (!gameOver) { bird.update(); updatePipes(); }
+        if (!gameOver) {
+          bird.update();
+          updatePipes();
+        }
 
         bird.draw();
         drawPipes();
@@ -226,7 +251,9 @@
 
         frames++;
         if (gameOver) gameState = "gameover";
-      } else if (gameState === "gameover") drawGameOver();
+      } else if (gameState === "gameover") {
+        drawGameOver();
+      }
 
       requestAnimationFrame(loop);
     }
@@ -234,7 +261,65 @@
     // ====== Event Mouse (PC) ======
     canvas.addEventListener("click", e => {
       const my = e.offsetY;
+
       if (gameState === "menu") {
         if (my >= 250 && my <= 300) { resetGame(); setLevel(1); gameState = "playing"; }
         else if (my >= 320 && my <= 370) { gameState = "level"; }
-        else if (my >= 390 && my <= 440) { gam
+        else if (my >= 390 && my <= 440) { gameState = "instructions"; }
+      } else if (gameState === "level") {
+        if (my >= 200 && my <= 250) { resetGame(); setLevel(1); gameState = "playing"; }
+        else if (my >= 280 && my <= 330) { resetGame(); setLevel(2); gameState = "playing"; }
+        else if (my >= 360 && my <= 410) { resetGame(); setLevel(3); gameState = "playing"; }
+        else if (my >= 440 && my <= 490) { gameState = "menu"; }
+      } else if (gameState === "instructions") {
+        if (my >= 500 && my <= 550) gameState = "menu";
+      } else if (gameState === "playing") {
+        if (!gameOver) bird.jump();
+      } else if (gameState === "gameover") {
+        if (my >= canvas.height/2 + 50 && my <= canvas.height/2 + 100) {
+          resetGame();
+          gameState = "playing";
+        } else if (my >= canvas.height/2 + 120 && my <= canvas.height/2 + 170) {
+          gameState = "menu";
+        }
+      }
+    });
+
+    // ====== Event Keyboard (PC) ======
+    document.addEventListener("keydown", e => {
+      if (gameState === "playing" && e.code === "Space") bird.jump();
+      if (gameState === "gameover" && e.code === "Space") {
+        resetGame();
+        gameState = "playing";
+      }
+    });
+
+    // ====== Event Touch (Mobile) ======
+    canvas.addEventListener("touchstart", e => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const my = touch.clientY;
+
+      if (gameState === "menu") {
+        if (my >= 250 && my <= 300) { resetGame(); setLevel(1); gameState = "playing"; }
+        else if (my >= 320 && my <= 370) { gameState = "level"; }
+        else if (my >= 390 && my <= 440) { gameState = "instructions"; }
+      } else if (gameState === "level") {
+        if (my >= 200 && my <= 250) { resetGame(); setLevel(1); gameState = "playing"; }
+        else if (my >= 280 && my <= 330) { resetGame(); setLevel(2); gameState = "playing"; }
+        else if (my >= 360 && my <= 410) { resetGame(); setLevel(3); gameState = "playing"; }
+        else if (my >= 440 && my <= 490) { gameState = "menu"; }
+      } else if (gameState === "instructions") {
+        if (my >= 500 && my <= 550) gameState = "menu";
+      } else if (gameState === "playing") {
+        if (!gameOver) bird.jump();
+      } else if (gameState === "gameover") {
+        resetGame();
+        gameState = "playing";
+      }
+    }, { passive: false });
+
+    loop();
+  </script>
+</body>
+</html>
