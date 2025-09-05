@@ -39,10 +39,10 @@
 
     // ====== Gambar ======
     const bgImg = new Image();
-    bgImg.src = "background.png"; // ganti dengan gambar awan kamu
+    bgImg.src = "background.png"; // ganti dengan gambar background awan
 
     const birdImg = new Image();
-    birdImg.src = "bird.png"; // ganti dengan foto burung kamu
+    birdImg.src = "bird.png"; // ganti dengan gambar burung kamu
 
     // ====== State Game ======
     let gameState = "menu"; // "menu", "playing", "gameover", "level", "instructions"
@@ -136,37 +136,19 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      // Judul 3D
-      ctx.font = "bold 48px Arial";
-      ctx.fillStyle = "#fff";
-      ctx.shadowColor = "#000";
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetX = 4;
-      ctx.shadowOffsetY = 4;
-      ctx.fillText("FLY BIRD", canvas.width / 2 - 110, 150);
-
-      ctx.shadowColor = "transparent"; // reset shadow
+      ctx.fillStyle = "black";
+      ctx.font = "36px Arial";
+      ctx.fillText("FLY BIRD", canvas.width / 2 - 80, 150);
 
       drawButton("Play", 150, 250);
       drawButton("Level Select", 200, 320);
       drawButton("Instructions", 200, 390);
     }
 
-    // ====== Tombol 3D ======
+    // ====== Tombol ======
     function drawButton(text, w, y) {
-      // bayangan tombol
-      ctx.fillStyle = "#27ae60";
-      ctx.fillRect(canvas.width/2 - w/2 + 4, y + 4, w, 50);
-
-      // tombol utama
       ctx.fillStyle = "#2ecc71";
       ctx.fillRect(canvas.width/2 - w/2, y, w, 50);
-
-      // highlight atas
-      ctx.fillStyle = "rgba(255,255,255,0.4)";
-      ctx.fillRect(canvas.width/2 - w/2, y, w, 10);
-
-      // teks
       ctx.fillStyle = "white";
       ctx.font = "20px Arial";
       ctx.fillText(text, canvas.width/2 - ctx.measureText(text).width/2, y + 32);
